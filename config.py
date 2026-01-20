@@ -29,14 +29,15 @@ FONTS = {
 
 # Cài đặt mặc định
 DEFAULT_SETTINGS = {
-    'speed': 1.0,
-    'zoom': 1.0,
-    'filter': 'Không filter'
+    'speed': 1.2,
+    'zoom': 1.2,
+    'filter': 'Custom1'
 }
 
 # Các filter có sẵn
 FILTERS = {
     "Không filter": "",
+    "Custom1": "eq=brightness=0.06:contrast=1.12:saturation=1.18,colortemperature=5500,unsharp=5:5:0.9:5:5:0.0",
     "Grayscale (Đen trắng)": "hue=s=0",
     # "Sepia (Màu nâu cổ điển)": "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
     "Blur (Làm mờ)": "boxblur=2:1",

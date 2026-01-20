@@ -1,5 +1,5 @@
 """
-Preview Panel - Quản lý preview filter
+Preview Panel - Quản lý preview filter (Compact Version)
 """
 
 import tkinter as tk
@@ -14,14 +14,15 @@ from video_processor import VideoProcessor
 
 
 class PreviewPanel:
-    """Panel để preview filter với ảnh mẫu"""
+    """Panel để preview filter với ảnh mẫu - Phiên bản compact"""
     
-    def __init__(self, parent, filter_var, custom_params, callback, zoom_var=None):
+    def __init__(self, parent, filter_var, custom_params, callback, zoom_var=None, compact=False):
         self.parent = parent
         self.filter_var = filter_var
         self.custom_params = custom_params
         self.callback = callback
-        self.zoom_var = zoom_var  # Thêm zoom_var
+        self.zoom_var = zoom_var
+        self.compact = compact  # Chế độ compact
         
         self.preview_image_path = None
         self.preview_image = None
@@ -30,6 +31,18 @@ class PreviewPanel:
         # Tạo folder pictures nếu chưa có
         self.pictures_folder = Path("pictures")
         self.pictures_folder.mkdir(exist_ok=True)
+        
+        # Kích thước canvas tùy theo mode
+        if compact:
+            self.canvas_width = 350
+            self.canvas_height = 200  # Giảm từ 220 xuống 200
+            self.thumb_width = 100
+            self.thumb_height = 70
+        else:
+            self.canvas_width = 500
+            self.canvas_height = 300
+            self.thumb_width = 140
+            self.thumb_height = 100
         
         # Tạo UI
         self.create_ui()
@@ -42,11 +55,11 @@ class PreviewPanel:
         preview_frame = tk.LabelFrame(
             self.parent,
             text="👁 Preview Filter",
-            font=FONTS['heading'],
+            font=FONTS['heading'] if not self.compact else FONTS['normal'],
             bg=COLORS['white'],
             fg=COLORS['primary'],
-            padx=15,
-            pady=15,
+            padx=10 if self.compact else 15,
+            pady=10 if self.compact else 15,
             relief="solid",
             bd=1
         )
@@ -56,22 +69,22 @@ class PreviewPanel:
         choose_img_btn = tk.Button(
             preview_frame,
             text="🖼 Chọn ảnh",
-            font=FONTS['normal'],
+            font=FONTS['small'] if self.compact else FONTS['normal'],
             bg=COLORS['secondary'],
             fg=COLORS['white'],
-            padx=20,
-            pady=10,
+            padx=15 if self.compact else 20,
+            pady=6 if self.compact else 10,
             cursor="hand2",
             bd=0,
             command=self.choose_preview_image
         )
-        choose_img_btn.pack(pady=(0, 10))
+        choose_img_btn.pack(pady=(0, 8))
         
-        # Canvas để hiển thị ảnh - TO HƠN
+        # Canvas để hiển thị ảnh - COMPACT
         self.preview_canvas = tk.Canvas(
             preview_frame,
-            width=500,
-            height=300,
+            width=self.canvas_width,
+            height=self.canvas_height,
             bg=COLORS['background'],
             highlightthickness=0
         )
@@ -85,30 +98,30 @@ class PreviewPanel:
             bg=COLORS['white'],
             fg=COLORS['text_light']
         )
-        self.preview_status.pack(pady=(8, 0))
+        self.preview_status.pack(pady=(6, 0))
         
         # Separator
-        ttk.Separator(preview_frame, orient="horizontal").pack(fill="x", pady=10)
+        ttk.Separator(preview_frame, orient="horizontal").pack(fill="x", pady=8)
         
         # Label cho thư viện
         tk.Label(
             preview_frame,
             text="📚 Thư viện ảnh mẫu",
-            font=FONTS['heading'],
+            font=FONTS['normal'] if self.compact else FONTS['heading'],
             bg=COLORS['white'],
             fg=COLORS['primary']
-        ).pack(pady=(5, 10))
+        ).pack(pady=(5, 8))
         
         # Frame cho thumbnail gallery với scrollbar NGANG
         gallery_container = tk.Frame(preview_frame, bg=COLORS['white'])
         gallery_container.pack(fill="both", expand=True)
         
-        # Canvas cho thumbnails
+        # Canvas cho thumbnails - NHỎ HƠN
         self.gallery_canvas = tk.Canvas(
             gallery_container,
             bg=COLORS['background'],
             highlightthickness=0,
-            height=150
+            height=100 if self.compact else 150  # Giảm từ 110 xuống 100
         )
         
         # Scrollbar NGANG
@@ -163,7 +176,7 @@ class PreviewPanel:
         if not image_files:
             tk.Label(
                 self.thumbnails_frame,
-                text="Chưa có ảnh nào trong folder 'pictures'\nHãy thêm ảnh vào folder để hiển thị",
+                text="Chưa có ảnh nào trong folder 'pictures'",
                 font=FONTS['small'],
                 bg=COLORS['background'],
                 fg=COLORS['text_light'],
@@ -171,8 +184,7 @@ class PreviewPanel:
             ).pack()
             return
         
-        # Tạo grid của thumbnails - KHÔNG giới hạn số ảnh/hàng
-        # Sẽ tự động wrap khi hết chỗ
+        # Tạo row của thumbnails
         row_frame = tk.Frame(self.thumbnails_frame, bg=COLORS['background'])
         row_frame.pack(fill="x", pady=5)
         
@@ -180,27 +192,21 @@ class PreviewPanel:
             self.create_thumbnail(row_frame, img_path)
     
     def create_thumbnail(self, parent, img_path):
-        """Tạo thumbnail cho một ảnh"""
+        """Tạo thumbnail cho một ảnh - COMPACT"""
         try:
             # Load ảnh
             img = Image.open(img_path)
             
             # Tính toán resize giữ nguyên tỷ lệ
-            target_width = 140
-            target_height = 100
-            
-            # Tính tỷ lệ
             img_ratio = img.width / img.height
-            target_ratio = target_width / target_height
+            target_ratio = self.thumb_width / self.thumb_height
             
             if img_ratio > target_ratio:
-                # Ảnh rộng hơn
-                new_width = target_width
-                new_height = int(target_width / img_ratio)
+                new_width = self.thumb_width
+                new_height = int(self.thumb_width / img_ratio)
             else:
-                # Ảnh cao hơn
-                new_height = target_height
-                new_width = int(target_height * img_ratio)
+                new_height = self.thumb_height
+                new_width = int(self.thumb_height * img_ratio)
             
             # Resize giữ tỷ lệ
             img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
@@ -209,22 +215,25 @@ class PreviewPanel:
             photo = ImageTk.PhotoImage(img)
             self.thumbnail_images.append(photo)
             
-            # Frame cho thumbnail - fixed size
+            # Frame cho thumbnail - COMPACT
+            frame_width = self.thumb_width + 10
+            frame_height = self.thumb_height + 30
+            
             thumb_frame = tk.Frame(
                 parent,
                 bg=COLORS['white'],
                 relief="solid",
-                bd=0,                       
+                bd=0,
                 cursor="hand2",
-                width=150,
-                height=130,
-                highlightbackground="#DFE6E9",    
-                highlightthickness=2               
+                width=frame_width,
+                height=frame_height,
+                highlightbackground="#DFE6E9",
+                highlightthickness=2
             )
-            thumb_frame.pack(side="left", padx=5)
-            thumb_frame.pack_propagate(False)  # Giữ kích thước cố định
+            thumb_frame.pack(side="left", padx=3 if self.compact else 5)
+            thumb_frame.pack_propagate(False)
             
-            # Container cho ảnh (để center)
+            # Container cho ảnh
             img_container = tk.Frame(thumb_frame, bg=COLORS['white'])
             img_container.pack(expand=True)
             
@@ -236,10 +245,11 @@ class PreviewPanel:
             )
             label.pack()
             
-            # Tên file
+            # Tên file - RÚT NGẮN HƠN
             filename = img_path.name
-            if len(filename) > 18:
-                filename = filename[:15] + "..."
+            max_len = 12 if self.compact else 18
+            if len(filename) > max_len:
+                filename = filename[:max_len-3] + "..."
             
             name_label = tk.Label(
                 thumb_frame,
@@ -265,9 +275,8 @@ class PreviewPanel:
     def select_thumbnail_image(self, image_path, thumb_frame):
         """Chọn thumbnail và hiển thị preview"""
         try:
-            # Bỏ highlight thumbnail cũ (KIỂM TRA TỒN TẠI TRƯỚC)
+            # Bỏ highlight thumbnail cũ
             if hasattr(self, 'selected_thumbnail') and self.selected_thumbnail:
-                # THÊM KIỂM TRA NÀY
                 if self.selected_thumbnail.winfo_exists():
                     self.selected_thumbnail.config(
                         relief="solid",
@@ -275,7 +284,6 @@ class PreviewPanel:
                         highlightbackground="#DFE6E9",
                         highlightthickness=2
                     )
-                # Reset reference
                 self.selected_thumbnail = None
             
             # Highlight thumbnail mới
@@ -294,6 +302,7 @@ class PreviewPanel:
             
         except Exception as e:
             print(f"Lỗi select thumbnail: {e}")
+    
     def choose_preview_image(self):
         """Chọn ảnh từ file dialog"""
         file = filedialog.askopenfilename(
@@ -318,8 +327,9 @@ class PreviewPanel:
                 self.selected_thumbnail = None
             
             filename = os.path.basename(file)
-            if len(filename) > 40:
-                filename = filename[:37] + "..."
+            max_len = 30 if self.compact else 40
+            if len(filename) > max_len:
+                filename = filename[:max_len-3] + "..."
             self.preview_status.config(text=f"📷 {filename}")
             
             self.callback(file)
@@ -363,22 +373,16 @@ class PreviewPanel:
                 # Lấy zoom level
                 zoom_level = self.zoom_var.get() if self.zoom_var else 1.0
                 
-                # Resize giữ tỷ lệ để fit vào canvas 500x300
-                canvas_width = 500
-                canvas_height = 300
-                
-                # Tính tỷ lệ
+                # Resize giữ tỷ lệ để fit vào canvas
                 img_ratio = img.width / img.height
-                canvas_ratio = canvas_width / canvas_height
+                canvas_ratio = self.canvas_width / self.canvas_height
                 
                 if img_ratio > canvas_ratio:
-                    # Ảnh rộng hơn canvas
-                    new_width = int(canvas_width * zoom_level)
-                    new_height = int((canvas_width * zoom_level) / img_ratio)
+                    new_width = int(self.canvas_width * zoom_level)
+                    new_height = int((self.canvas_width * zoom_level) / img_ratio)
                 else:
-                    # Ảnh cao hơn canvas
-                    new_height = int(canvas_height * zoom_level)
-                    new_width = int((canvas_height * zoom_level) * img_ratio)
+                    new_height = int(self.canvas_height * zoom_level)
+                    new_width = int((self.canvas_height * zoom_level) * img_ratio)
                 
                 # Resize với zoom
                 img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
@@ -392,9 +396,6 @@ class PreviewPanel:
                 ))
         except Exception as e:
             print(f"Lỗi preview: {e}")
-            self.parent.after(0, lambda: self.preview_status.config(
-                text="Preview"
-            ))
     
     def _display_preview(self, photo, filter_name, img_width, img_height):
         """Hiển thị preview image - center trong canvas"""
@@ -405,29 +406,82 @@ class PreviewPanel:
         zoom_level = self.zoom_var.get() if self.zoom_var else 1.0
         
         # Tính toán vị trí center
-        canvas_width = 500
-        canvas_height = 300
-        x = canvas_width // 2
-        y = canvas_height // 2
+        x = self.canvas_width // 2
+        y = self.canvas_height // 2
         
-        # Vẽ ảnh ở giữa canvas (ảnh đã được zoom trong _apply_filter_preview)
+        # Vẽ ảnh ở giữa canvas
         self.preview_canvas.create_image(x, y, image=self.preview_image)
         
         # Update status
         current_text = self.preview_status.cget("text")
         if "📷" in current_text:
-            # Giữ tên file, thêm filter và zoom
             filename = current_text.split("📷")[1].strip()
             zoom_text = f" • Zoom: {zoom_level:.1f}x" if zoom_level != 1.0 else ""
-            self.preview_status.config(text=f"📷 {filename} • Filter: {filter_name}{zoom_text}")
-        
-        # Hiển thị kích thước ảnh
-        size_text = f"{img_width}x{img_height}"
-        self.preview_canvas.create_text(
-            canvas_width - 5,
-            canvas_height - 5,
-            text=size_text,
-            anchor="se",
-            fill=COLORS['text_light'],
-            font=FONTS['small']
-        )
+            filter_text = f" • {filter_name}" if not self.compact else ""
+            self.preview_status.config(text=f"📷 {filename}{filter_text}{zoom_text}")
+    
+    def show_video_preview(self, image_path):
+        """Hiển thị video preview trực tiếp (được gọi từ main_window)"""
+        try:
+            if not os.path.exists(image_path):
+                return
+            
+            if os.path.getsize(image_path) == 0:
+                return
+            
+            # Bỏ highlight thumbnail cũ
+            try:
+                if hasattr(self, 'selected_thumbnail') and self.selected_thumbnail:
+                    if self.selected_thumbnail.winfo_exists():
+                        self.selected_thumbnail.config(
+                            relief="solid",
+                            bd=2,
+                            highlightbackground="#DFE6E9",
+                            highlightthickness=2
+                        )
+                    self.selected_thumbnail = None
+            except:
+                self.selected_thumbnail = None
+            
+            # Lưu preview image path
+            self.preview_image_path = image_path
+            self.callback(image_path)
+            
+            # Load ảnh
+            img = Image.open(image_path)
+            
+            # Lấy zoom level
+            zoom_level = self.zoom_var.get() if self.zoom_var else 1.0
+            
+            # Resize để fit canvas
+            img_ratio = img.width / img.height
+            canvas_ratio = self.canvas_width / self.canvas_height
+            
+            if img_ratio > canvas_ratio:
+                new_width = int(self.canvas_width * zoom_level)
+                new_height = int((self.canvas_width * zoom_level) / img_ratio)
+            else:
+                new_height = int(self.canvas_height * zoom_level)
+                new_width = int((self.canvas_height * zoom_level) * img_ratio)
+            
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(img)
+            
+            # Hiển thị trong preview panel
+            self.preview_image = photo
+            self.preview_canvas.delete("all")
+            
+            x = self.canvas_width // 2
+            y = self.canvas_height // 2
+            self.preview_canvas.create_image(x, y, image=photo)
+            
+            # Update status
+            filter_name = self.filter_var.get()
+            zoom_text = f" • Zoom: {zoom_level:.1f}x" if zoom_level != 1.0 else ""
+            filter_text = f" • {filter_name}" if not self.compact else ""
+            self.preview_status.config(
+                text=f"🎬 Video Preview{filter_text}{zoom_text}"
+            )
+            
+        except Exception as e:
+            print(f"❌ Lỗi hiển thị preview: {e}")
